@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บันทึกข้อมูลพนักงานเข้า OT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #1342a8;
+    --primary-light: #ebf0ff;
+    --success: #0e9f6e;
+    --error: #e02424;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --border: #dce1ef;
+    --text: #1e2533;
+    --muted: #6b7491;
+    --radius: 12px;
+    --shadow: 0 2px 16px rgba(26,86,219,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px 48px;
+    color: var(--text);
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 520px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: var(--primary);
+    padding: 28px 32px 24px;
+    color: white;
+  }
+
+  .card-header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .card-header p {
+    font-size: 0.875rem;
+    opacity: 0.8;
+    margin-top: 4px;
+  }
+
+  .card-body {
+    padding: 28px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+
+  label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  label span.req { color: var(--error); margin-left: 2px; }
+
+  input[type="text"], input[type="date"], input[type="time"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text);
+    background: #fff;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* Employee Picker */
+  .emp-wrapper { position: relative; }
+
+  .emp-input-row {
+    display: flex;
+    align-items: center;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    transition: border-color 0.15s;
+    overflow: hidden;
+  }
+
+  .emp-input-row:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
+  }
+
+  .emp-input-row input {
+    border: none;
+    box-shadow: none;
+    flex: 1;
+    padding: 10px 14px;
+  }
+
+  .emp-input-row input:focus { box-shadow: none; }
+
+  .emp-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 12px;
+    color: var(--muted);
+    font-size: 1.1rem;
+    display: none;
+  }
+
+  .emp-clear.show { display: block; }
+
+  /* Dropdown */
+  .emp-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0; right: 0;
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    z-index: 999;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .emp-dropdown.open { display: block; }
+
+  .emp-dropdown-header {
+    padding: 10px 14px 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: #fff;
+  }
+
+  .emp-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .emp-item:hover, .emp-item.active { background: var(--primary-light); }
+
+  .emp-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .emp-info { display: flex; flex-direction: column; }
+  .emp-name { font-size: 0.93rem; font-weight: 600; }
+  .emp-dept { font-size: 0.78rem; color: var(--muted); }
+
+  .emp-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+
+  .emp-selected-badge {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary-light);
+    border: 1.5px solid var(--primary);
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin-top: 6px;
+  }
+
+  .emp-selected-badge.show { display: flex; }
+  .emp-selected-badge .badge-name { font-weight: 600; font-size: 0.9rem; color: var(--primary-dark); }
+  .emp-selected-badge .badge-dept { font-size: 0.78rem; color: var(--muted); margin-left: 4px; }
+
+  /* Photo upload */
+  .photo-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .photo-upload-area:hover { border-color: var(--primary); background: var(--primary-light); }
+  .photo-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .photo-icon { font-size: 2rem; margin-bottom: 8px; }
+  .photo-label { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+  .photo-hint { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+  .photo-preview {
+    display: none;
+    margin-top: 12px;
+    position: relative;
+  }
+
+  .photo-preview.show { display: block; }
+
+  .photo-preview img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+  }
+
+  .photo-remove {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Location */
+  .location-box {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+  }
+
+  .location-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+  .location-text {
+    font-size: 0.88rem;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .location-text.loaded { color: var(--text); font-weight: 500; }
+
+  .btn-locate {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .btn-locate:hover { background: var(--primary-dark); }
+  .btn-locate:disabled { background: var(--muted); cursor: not-allowed; }
+
+  /* Submit */
+  .btn-submit {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 4px;
+  }
+
+  .btn-submit:hover { background: var(--primary-dark); }
+  .btn-submit:active { transform: scale(0.98); }
+  .btn-submit:disabled { background: var(--muted); cursor: not-allowed; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: transform 0.3s ease;
+    z-index: 9999;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--error); }
+
+  /* Divider */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .highlight-text { color: var(--primary); font-weight: 700; }
+
+    /* ── Check-in / Check-out buttons ── */
+    .type-btn-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+ 
+  .type-btn {
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: #fff;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+ 
+  .type-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+ 
+  .type-btn.selected-checkin {
+    border-color: #0e9f6e;
+    background: #f0fdf8;
+    color: #065f46;
+  }
+ 
+  .type-btn.selected-checkout {
+    border-color: #e02424;
+    background: #fff5f5;
+    color: #9b1c1c;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <h1>บันทึกข้อมูลเข้า OT</h1>
+    <p>กรอกข้อมูลให้ครบแล้วกดส่ง</p>
+  </div>
+
+  <div class="card-body">
+
+    <!-- วันที่ / เวลา -->
+    <div class="row">
+      <div class="field">
+        <label for="date">วันที่<span class="req">*</span></label>
+        <input type="date" id="date" required>
+      </div>
+      <div class="field">
+        <label>เวลา</label>
+        <div class="location-box" style="background:#fff;">
+          <span id="clockDisplay" style="font-size:1rem; font-weight:600; color:var(--text); flex:1;">00:00:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- ชื่อพนักงาน -->
+    <div class="field">
+      <label>ชื่อพนักงาน<span class="req">*</span></label>
+      <div class="emp-wrapper">
+        <div class="emp-input-row">
+          <input
+            type="text"
+            id="empSearch"
+            placeholder="พิมชื่อหรือกดเพื่อเลือก..."
+            autocomplete="off"
+          >
+          <button class="emp-clear" id="empClear" type="button" title="ล้าง">✕</button>
+        </div>
+        <div class="emp-dropdown" id="empDropdown">
+          <div class="emp-dropdown-header" id="dropdownHeader">พนักงานทั้งหมด (เรียง ก–ฮ/A-Z)</div>
+          <div id="empList"></div>
+        </div>
+        <div class="emp-selected-badge" id="empBadge">
+          <span class="badge-name" id="badgeName"></span>
+          <span class="badge-dept" id="badgeDept"></span>
+        </div>
+      </div>
+      <input type="hidden" id="selectedEmployee">
+      <input type="hidden" id="selectedDept">
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ประเภท เข้า/ออกงาน -->
+    <div class="field">
+        <label>ประเภท<span class="req">*</span></label>
+        <div class="type-btn-group">
+            <button class="type-btn" id="btnCheckin" type="button">🟢 เข้างาน</button>
+            <button class="type-btn" id="btnCheckout" type="button">🔴 ออกงาน</button>
+        </div>
+        <input type="hidden" id="selectedType">
+    </div>
+
+    <!-- สรุปงาน (โผล่เฉพาะตอนออกงาน) -->
+    <div class="field" id="workSummaryField" style="display:none;">
+        <label for="workSummary">ทำอะไรมาบ้าง<span class="req">*</span></label>
+        <textarea
+            id="workSummary"
+            placeholder="สรุปงานที่ทำในวันนี้..."
+            rows="4"
+            style="
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text);
+            background: #fff;
+            resize: vertical;
+            outline: none;
+            transition: border-color 0.15s;
+            "
+        ></textarea>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- อัปโหลดรูป -->
+    <div class="field">
+      <label>รูปภาพ<span class="req">*</span></label>
+      <div class="photo-upload-area" id="uploadArea">
+        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <div class="photo-icon">📷</div>
+        <div class="photo-label">แตะเพื่อถ่ายรูป / เลือกรูป</div>
+        <div class="photo-hint">JPG, PNG ขนาดไม่เกิน 10MB</div>
+      </div>
+      <div class="photo-preview" id="photoPreview">
+        <img id="previewImg" src="" alt="preview">
+        <button class="photo-remove" id="photoRemove" type="button">✕</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Location -->
+    <div class="field">
+      <label>ตำแหน่งที่อยู่ปัจจุบัน<span class="req">*</span></label>
+      <div class="location-box">
+        <span class="location-icon">📍</span>
+        <span class="location-text" id="locationText">ยังไม่ได้ระบุตำแหน่ง</span>
+        <button class="btn-locate" id="btnLocate" type="button">ระบุตำแหน่ง</button>
+      </div>
+      <input type="hidden" id="locationLat">
+      <input type="hidden" id="locationLng">
+      <input type="hidden" id="locationStr">
+    </div>
+
+    <!-- Submit -->
+    <button class="btn-submit" id="btnSubmit" type="button">ส่งข้อมูล</button>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+// CHECK-IN / CHECK-OUT
+async function selectType(type) {
+    if (type === 'ออกงาน') {
+        const emp = hiddenEmp.value;
+        if (!emp) {
+        showToast('กรุณาเลือกชื่อพนักงานก่อน', 'error');
+        return;
+        }
+
+        // เช็คกับ Sheet ว่า check-in แล้วมั้ย
+        const date = document.getElementById('date').value;
+        try {
+        const res = await fetch(
+            `${APPS_SCRIPT_URL}?action=checkStatus&name=${encodeURIComponent(emp)}&date=${date}`
+        );
+        const result = await res.json();
+
+        if (!result.hasCheckin) {
+            showToast('❌ ยังไม่ได้เข้างานวันนี้ กรุณาติดต่อที่ ออฟฟิศ ในเวลาทำการ', 'error');
+            return; // ไม่ให้เลือกออกงาน
+        }
+        } catch {
+        showToast('ไม่สามารถตรวจสอบสถานะได้', 'error');
+        return;
+        }
+    }
+
+    // ถ้าผ่านแล้วค่อย set type ตามปกติ
+    document.getElementById('selectedType').value = type;
+    const btnIn  = document.getElementById('btnCheckin');
+    const btnOut = document.getElementById('btnCheckout');
+    btnIn.classList.remove('selected-checkin');
+    btnOut.classList.remove('selected-checkout');
+    if (type === 'เข้างาน') {
+        btnIn.classList.add('selected-checkin');
+        document.getElementById('workSummaryField').style.display = 'none';
+        document.getElementById('workSummary').value = '';
+    } else {
+        btnOut.classList.add('selected-checkout');
+        document.getElementById('workSummaryField').style.display = 'flex';
+    }
+}
+
+// CONFIG
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw7YZfBvqiSdrVf2KJET67s_ZTz45C9N2ZpgI6sa3oxurIfFZGlxCMzAOPpSip_uKZB/exec";
+
+document.getElementById('btnCheckin').addEventListener('click', () => selectType('เข้างาน'));
+document.getElementById('btnCheckout').addEventListener('click', () => selectType('ออกงาน'));
+
+const EMPLOYEES = [
+  { name: "ธรากร จำเขียน",    dept: "สี 1" },
+  { name: "Jet May Thaung",       dept: "สี 2" },
+  { name: "Mayu",       dept: "Admin" },
+  { name: "วันดี กาญจนวงศ์วนิช",     dept: "Admin" },
+  { name: "ชนธัญ มงคลเอื้อตระกูล",      dept: "Admin" },
+  { name: "ภณชยพันธ์ ตึดพงษ์พันธ์",   dept: "สี 2" },
+  { name: "นภากิจจ์ธนาภณพร ตึดพงษ์พันธ์",         dept: "สี 2" },
+  { name: "เดโช ปานเขมา",      dept: "หล่อ" },
+  { name: "ไพรินทร์ สอสุทำ",       dept: "กลึง" },
+  { name: "สุเทพ แสวงรัมย์",   dept: "หล่อ" },
+  { name: "บุญยง พงศ์ธนากุล",       dept: "Manager" },
+  { name: "วรินทร พนิตานนท์",    dept: "Manager" },
+].sort((a, b) => a.name.localeCompare(b.name, ['th', 'en']));
+
+// SET DEFAULT DATE/TIME 
+function getLocalDateString(d = new Date()) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('date').value = getLocalDateString(now);
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('clockDisplay').textContent = `${h}:${m}:${s}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ─── EMPLOYEE AUTOCOMPLETE ─────────────────────────────────────
+const empSearch    = document.getElementById('empSearch');
+const empDropdown  = document.getElementById('empDropdown');
+const empList      = document.getElementById('empList');
+const empClear     = document.getElementById('empClear');
+const empBadge     = document.getElementById('empBadge');
+const badgeName    = document.getElementById('badgeName');
+const badgeDept    = document.getElementById('badgeDept');
+const dropHeader   = document.getElementById('dropdownHeader');
+const hiddenEmp    = document.getElementById('selectedEmployee');
+const hiddenDept   = document.getElementById('selectedDept');
+
+let selectedEmp = null;
+
+function getInitials(name) {
+  const parts = name.trim().split(' ');
+  return parts[0]?.[0] || '?';
+}
+
+function renderList(filtered) {
+  empList.innerHTML = '';
+  if (filtered.length === 0) {
+    empList.innerHTML = '<div class="emp-empty">ไม่พบชื่อที่ค้นหา</div>';
+    dropHeader.textContent = 'ไม่พบผลลัพธ์';
+    return;
+  }
+  dropHeader.textContent = empSearch.value.trim()
+    ? `ผลการค้นหา (${filtered.length} คน)`
+    : `พนักงานทั้งหมด (${filtered.length} คน · เรียง ก–ฮ/A-Z)`;
+
+  filtered.forEach((emp, i) => {
+    const div = document.createElement('div');
+    div.className = 'emp-item';
+    div.innerHTML = `
+      <div class="emp-avatar">${getInitials(emp.name)}</div>
+      <div class="emp-info">
+        <span class="emp-name">${emp.name}</span>
+        <span class="emp-dept">${emp.dept}</span>
+      </div>
+    `;
+    div.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      selectEmployee(emp);
+    });
+    empList.appendChild(div);
+  });
+}
+
+function selectEmployee(emp) {
+    selectedEmp = emp;
+    hiddenEmp.value = emp.name;
+    hiddenDept.value = emp.dept;
+    empSearch.value = emp.name;
+    badgeName.textContent = emp.name;
+    badgeDept.textContent = '· ' + emp.dept;
+    empBadge.classList.add('show');
+    empClear.classList.add('show');
+    closeDropdown();
+}
+
+function clearEmployee() {
+    selectedEmp = null;
+    hiddenEmp.value = '';
+    hiddenDept.value = '';
+    empSearch.value = '';
+    empBadge.classList.remove('show');
+    empClear.classList.remove('show');
+    empSearch.focus();
+}
+
+function openDropdown() {
+    const q = empSearch.value.trim();
+    const filtered = EMPLOYEES.filter(e =>
+        e.name.includes(q) || e.dept.includes(q)
+    );
+    renderList(filtered);
+    empDropdown.classList.add('open');
+}
+
+function closeDropdown() {
+    empDropdown.classList.remove('open');
+}
+
+empSearch.addEventListener('focus', openDropdown);
+empSearch.addEventListener('input', openDropdown);
+empClear.addEventListener('click', clearEmployee);
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.emp-wrapper')) closeDropdown();
+});
+
+// ─── PHOTO UPLOAD ──────────────────────────────────────────────
+const photoInput  = document.getElementById('photoInput');
+const photoPreview= document.getElementById('photoPreview');
+const previewImg  = document.getElementById('previewImg');
+const photoRemove = document.getElementById('photoRemove');
+let photoFile = null;
+
+photoInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { showToast('รูปภาพใหญ่เกิน 10MB', 'error'); return; }
+  photoFile = file;
+  const url = URL.createObjectURL(file);
+  previewImg.src = url;
+  photoPreview.classList.add('show');
+});
+
+photoRemove.addEventListener('click', () => {
+  photoFile = null;
+  photoInput.value = '';
+  previewImg.src = '';
+  photoPreview.classList.remove('show');
+});
+
+// GPS LOCATION 
+const btnLocate    = document.getElementById('btnLocate');
+const locationText = document.getElementById('locationText');
+const locationLat  = document.getElementById('locationLat');
+const locationLng  = document.getElementById('locationLng');
+const locationStr  = document.getElementById('locationStr');
+
+btnLocate.addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    showToast('เบราว์เซอร์นี้ไม่รองรับ GPS', 'error');
+    return;
+  }
+  btnLocate.disabled = true;
+  btnLocate.textContent = '⏳ กำลังระบุ...';
+  locationText.textContent = 'กำลังหาตำแหน่ง...';
+  locationText.classList.remove('loaded');
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      locationLat.value = lat;
+      locationLng.value = lng;
+
+      // Reverse geocode (ฟรี)
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+        const d = await r.json();
+        const addr = d.display_name || `${lat}, ${lng}`;
+        locationStr.value = addr;
+        locationText.textContent = addr;
+      } catch {
+        locationStr.value = `${lat}, ${lng}`;
+        locationText.textContent = `${lat}, ${lng}`;
+      }
+
+      locationText.classList.add('loaded');
+      btnLocate.textContent = '✅ ระบุแล้ว';
+      btnLocate.disabled = false;
+    },
+    (err) => {
+      showToast('ไม่สามารถระบุตำแหน่งได้ กรุณาอนุญาต GPS', 'error');
+      locationText.textContent = 'ระบุตำแหน่งไม่สำเร็จ';
+      btnLocate.textContent = '📡 ลองอีกครั้ง';
+      btnLocate.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+});
+
+// SUBMIT 
+document.getElementById('btnSubmit').addEventListener('click', async () => {
+    const date   = document.getElementById('date').value;
+    const emp    = hiddenEmp.value;
+    const dept   = hiddenDept.value;
+    const lat    = locationLat.value;
+    const lng    = locationLng.value;
+    const locStr = locationStr.value;
+    const type   = document.getElementById('selectedType').value;
+    const workSummary = document.getElementById('workSummary').value;
+
+    if (!date)      return showToast('กรุณาเลือกวันที่', 'error');
+    if (!type)      return showToast('กรุณาเลือก เข้างาน หรือ ออกงาน', 'error');
+    if (type === 'ออกงาน' && !workSummary.trim()) {
+        return showToast('กรุณากรอกสรุปงานที่ทำมาด้วย', 'error');
+    }
+    if (!emp)       return showToast('กรุณาเลือกชื่อพนักงาน', 'error');
+    if (!photoFile) return showToast('กรุณาเลือกรูปภาพ', 'error');
+    if (!lat)       return showToast('กรุณาระบุตำแหน่งที่อยู่ก่อน', 'error');
+
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.textContent = '⏳ กำลังส่ง...';
+
+    try {
+        const base64 = await toBase64(photoFile);
+        const now = new Date(); 
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+        const payload = {
+        date,
+        time: timeStr,
+        type,
+        workSummary: type === 'ออกงาน' ? workSummary : '',
+        employeeName: emp,
+        department: dept,
+        photoBase64: base64,
+        photoName: photoFile.name,
+        latitude: lat,
+        longitude: lng,
+        locationAddress: locStr,
+        };
+
+        const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        });
+
+        const result = await res.json();
+
+        if (result.status === 'ok' || result.status === 'OK') {
+        showToast('✅ บันทึกสำเร็จ!', 'success');
+        resetForm();
+        } else {
+        throw new Error(result.message || 'เกิดข้อผิดพลาด');
+        }
+    } catch (err) {
+        showToast('❌ ส่งไม่สำเร็จ: ' + err.message, 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'ส่งข้อมูล →';
+});
+
+function toBase64(file) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+    });
+}
+
+function resetForm() {
+    const now = new Date();
+    document.getElementById('date').value = getLocalDateString(now);
+    document.getElementById('selectedType').value = '';
+    document.getElementById('workSummary').value = '';
+    document.getElementById('workSummaryField').style.display = 'none';
+    document.getElementById('btnCheckin').classList.remove('selected-checkin');
+    document.getElementById('btnCheckout').classList.remove('selected-checkout');
+    clearEmployee();
+    photoFile = null;
+    photoInput.value = '';
+    previewImg.src = '';
+    photoPreview.classList.remove('show');
+    locationLat.value = '';
+    locationLng.value = '';
+    locationStr.value = '';
+    locationText.textContent = 'ยังไม่ได้ระบุตำแหน่ง';
+    locationText.classList.remove('loaded');
+    document.getElementById('btnLocate').textContent = 'ระบุตำแหน่ง';
+}
+
+// TOAST
+function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>
